@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -10,6 +12,45 @@ class MyApp extends StatefulWidget {
 
   @override
   State<MyApp> createState() => _MyAppState();
+}
+
+class CameraService {
+  final ImagePicker _picker = ImagePicker();
+
+  /// Solicita a permissão e tira a foto caso autorizado.
+  Future<XFile?> checkPermissionAndRequestPhoto() async {
+    // 1. Verifica o status atual da permissão da câmera
+    var status = await Permission.camera.status;
+
+    // 2. Se nunca foi pedida ou foi negada uma vez, solicita ao usuário
+    if (status.isDenied) {
+      status = await Permission.camera.request();
+    }
+
+    // 3. Se o usuário concedeu a permissão, abre a câmera para tirar a foto
+    if (status.isGranted) {
+      try {
+        final XFile? photo = await _picker.pickImage(
+          source: ImageSource.camera,
+        );
+        return photo;
+      } catch (e) {
+        print("Erro ao abrir a câmera: $e");
+        return null;
+      }
+    }
+
+    // 4. Se o usuário negou permanentemente (marcou "Não perguntar novamente")
+    if (status.isPermanentlyDenied) {
+      print(
+        "Permissão permanentemente negada. Direcionando para as configurações.",
+      );
+      // Abre a tela de configurações do próprio smartphone para o usuário ativar manualmente
+      await openAppSettings();
+    }
+
+    return null;
+  }
 }
 
 class _MyAppState extends State<MyApp> {
